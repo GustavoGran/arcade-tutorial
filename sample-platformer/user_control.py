@@ -6,11 +6,16 @@ import arcade
 
 # Constants
 DISPLAY_SIZE = arcade.get_display_size()
-SCREEN_WIDTH = int(DISPLAY_SIZE[0] // 1.5)
-SCREEN_HEIGHT = int(DISPLAY_SIZE[1] // 1.2)
+# SCREEN_WIDTH = int(DISPLAY_SIZE[0] // 1.5)
+# SCREEN_HEIGHT = int(DISPLAY_SIZE[1] // 1.2)
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 650
 SCREEN_TITLE = "Platformer"
-CHARACTER_SCALING = 1.0
+CHARACTER_SCALING = 0.5
 TILE_SCALING = 0.5
+
+# Movement speed of player, in pixels per frame
+PLAYER_MOVEMENT_SPEED = 5
 
 # Classes
 
@@ -23,12 +28,15 @@ class MyGame(arcade.Window):
         """
         # Calls parent class and setup the window
         super().__init__(height, width, title, 
-                         resizable=True, center_window=True)
+                         resizable=False, center_window=True)
 
         self.scene = None
 
         # Separate variable that holds the player sprite
         self.player_sprite = None
+
+        # Physics engine variable
+        self.physics_engine = None
 
         arcade.set_background_color(arcade.color.LIGHT_SLATE_GRAY)
 
@@ -78,6 +86,10 @@ class MyGame(arcade.Window):
             spikes.position = coordinate
             self.scene.add_sprite("Walls", spikes)
 
+        # Create the physics engine handle player movement and prevent collisions
+        self.physics_engine = arcade.PhysicsEngineSimple(
+            self.player_sprite, self.scene.get_sprite_list("Walls")
+        )
 
     def on_draw(self):
         """Render the game screen. Call this function to render a new frame"""
@@ -86,6 +98,38 @@ class MyGame(arcade.Window):
 
         # Draw our scene
         self.scene.draw()
+
+    def on_key_press(self, symbol, modifiers):
+        """Called whenever a key is pressed
+        Allows for basic movement with arrows (up, down, left, right)
+        """
+        if symbol == arcade.key.UP:
+            self.player_sprite.change_y = PLAYER_MOVEMENT_SPEED
+        elif symbol == arcade.key.DOWN:
+            self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
+        elif symbol == arcade.key.RIGHT:
+            self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
+        elif symbol == arcade.key.LEFT:
+            self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
+
+    def on_key_release(self, symbol, modifiers):
+        """Called whenever a key is realeased
+        Allows for basic movement with arrows (up, down, left, right)
+        """
+        if symbol == arcade.key.UP:
+            self.player_sprite.change_y = 0
+        elif symbol == arcade.key.DOWN:
+            self.player_sprite.change_y = 0
+        elif symbol == arcade.key.RIGHT:
+            self.player_sprite.change_x = 0
+        elif symbol == arcade.key.LEFT:
+            self.player_sprite.change_x = 0
+
+    def on_update(self, delta_time):
+        """Updates movements and game logic"""
+
+        # Move the player with the physics engine
+        self.physics_engine.update()
 
 if __name__ == '__main__':
     window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
