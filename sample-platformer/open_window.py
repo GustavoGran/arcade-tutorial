@@ -5,8 +5,9 @@ Platformer Game
 import arcade
 
 # Constants
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 650
+DISPLAY_SIZE = arcade.get_display_size()
+SCREEN_WIDTH = int(DISPLAY_SIZE[0] // 1.5)
+SCREEN_HEIGHT = int(DISPLAY_SIZE[1] // 1.2)
 SCREEN_TITLE = "Platformer"
 
 # Classes
@@ -17,9 +18,10 @@ class MyGame(arcade.Window):
     def __init__(self, height, width, title):
 
         # Calls arcade.Window initialization method
-        super().__init__(height, width, title)
+        super().__init__(height, width, title, 
+                         resizable=True, center_window=True)
 
-        arcade.set_background_color(arcade.color.PINK)
+        arcade.set_background_color(arcade.color.LAVENDER_BLUSH)
 
     def setup(self):
         """Set up game here. Call this function to restart the game
@@ -28,7 +30,10 @@ class MyGame(arcade.Window):
 
     def on_draw(self):
         """Render the game screen. Call this function to render a new frame"""
-        pass
+        # Removes old renders
+        self.clear()
+
+
 
 
 if __name__ == '__main__':
