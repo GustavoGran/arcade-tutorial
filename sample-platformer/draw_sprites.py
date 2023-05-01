@@ -57,7 +57,7 @@ class MyGame(arcade.Window):
         # Create the ground
         # places multiple sprites horizontally
         wall_img = ":resources:/images/tiles/stone.png"
-        for x in range (0, SCREEN_WIDTH, 60):
+        for x in range (0, SCREEN_WIDTH, 30):
             wall = arcade.Sprite(wall_img, TILE_SCALING)
             wall.center_x = x
             wall.center_y = 32
@@ -66,9 +66,10 @@ class MyGame(arcade.Window):
         # Put some spikes on the ground
         # Uses coordinate list to place sprites
         coordinate_lists = [
-            [512, 96],
             [256,96],
-            [768, 96]
+            [512, 96],
+            [768, 96],
+            [1024, 96]
         ]
         spike_img = ":resources:/images/tiles/spikes.png"
         for coordinate in coordinate_lists:
