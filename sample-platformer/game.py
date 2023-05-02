@@ -4,6 +4,7 @@ Platformer Game
 
 import arcade
 import logging
+from random import randint
 
 # Constants
 DISPLAY_SIZE = arcade.get_display_size()
@@ -14,6 +15,7 @@ SCREEN_HEIGHT = 650
 SCREEN_TITLE = "Platformer"
 CHARACTER_SCALING = 0.5
 TILE_SCALING = 0.5
+COIN_SCALING = 0.5
 
 # Movement speed of player, in pixels per frame
 PLAYER_MOVEMENT_SPEED = 10
@@ -47,6 +49,11 @@ class MyGame(arcade.Window):
         # Physics engine variable
         self.physics_engine = None
 
+        # Create sounds variables
+        self.jump_sound = None
+        self.collect_coins_sound = None
+
+
         arcade.set_background_color(arcade.color.LIGHT_SLATE_GRAY)
 
     def setup(self):
@@ -62,6 +69,7 @@ class MyGame(arcade.Window):
         # Creates Sprite Lists
         self.scene.add_sprite_list("Player")
         self.scene.add_sprite_list("Walls", use_spatial_hash=True)
+        self.scene.add_sprite_list("Coins", use_spatial_hash=True)
 
         # Set up the player, specifically placing at these cordinates
         player_img = ":resources:images/alien/alienBlue_walk1.png"
@@ -76,25 +84,51 @@ class MyGame(arcade.Window):
         # Create the ground
         # places multiple sprites horizontally
         wall_img = ":resources:/images/tiles/stone.png"
-        for x in range (0, SCREEN_WIDTH, 30):
+        for x in range (0, SCREEN_WIDTH, 64):
             wall = arcade.Sprite(wall_img, TILE_SCALING)
             wall.center_x = x
             wall.center_y = 32
             self.scene.add_sprite("Walls", wall)
+
+        # resources are 128x128 px images
+        # We want to place a coin each 3 blocks starting on 4th block 
+        # until the map ends
+        coin_start_coord = {
+            'x': int(128*TILE_SCALING*4),
+            'y': int(128*(TILE_SCALING + 1.5*COIN_SCALING))
+        }
+
+        coin_gen_step = int(128*COIN_SCALING*3)
+
+        coin_coord_lists =[[x, coin_start_coord['y']] 
+                            for x in range(coin_start_coord['x'],
+                                           SCREEN_WIDTH,
+                                           coin_gen_step)]
         
+        # Add coins with the predefined coordinates
+        coin_img = ':resources:/images/items/coinGold.png'
+        for coord in coin_coord_lists:
+            coin = arcade.Sprite(coin_img, COIN_SCALING)
+            coin.position = coord
+            self.scene.add_sprite("Coins", coin)
+            
         # Put some spikes on the ground
         # Uses coordinate list to place sprites
-        coordinate_lists = [
-            [256,96],
-            [512, 96],
-            [768, 96],
-            [1024, 96]
-        ]
+        spike_start_coord = {
+            "x": int(128 * TILE_SCALING*3),
+            "y": int(128 * TILE_SCALING * 1.5),
+        }
+
+        spike_gen_step = int(128*TILE_SCALING*5)
+        spikes_coords = [[x, spike_start_coord['y']] 
+                            for x in range(spike_start_coord['x'],
+                                           SCREEN_WIDTH,
+                                           spike_gen_step)]
+        # Add spikes to the ground
         spike_img = ":resources:/images/tiles/spikes.png"
-        for coordinate in coordinate_lists:
-            # Add a spike on the ground
+        for coord in spikes_coords:
             spikes = arcade.Sprite(spike_img, TILE_SCALING)
-            spikes.position = coordinate
+            spikes.position = coord
             self.scene.add_sprite("Walls", spikes)
 
         # Creates physics engine to handle player movement and gravity
@@ -103,6 +137,10 @@ class MyGame(arcade.Window):
             gravity_constant= GRAVITY,
             walls=self.scene.get_sprite_list("Walls"),
         )
+
+        # Load sounds
+        self.jump_sound = arcade.load_sound(":resources:/sounds/jump5.wav")
+        self.collect_coins_sound = arcade.load_sound(":resources:/sounds/coin5.wav") 
 
     def on_draw(self):
         """Render the game screen. Call this function to render a new frame"""
@@ -147,6 +185,20 @@ class MyGame(arcade.Window):
         # Repositions the camera according to player movement
         self.center_camera_to_player()
 
+        # Collect coins if player passes through it
+        coins_hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite, 
+            self.scene.get_sprite_list("Coins"),
+        )
+
+        for coin in coins_hit_list:
+            # Removes the coin
+            coin.remove_from_sprite_lists()
+            # Play a sound
+            arcade.play_sound(self.collect_coins_sound)
+
+
+
     def center_camera_to_player(self):
         """Moves the camera so it can follow the player on screen"""
         # First we determine what are our player coordinates
@@ -186,7 +238,9 @@ class MyGame(arcade.Window):
         self.player_sprite.change_x = 0
 
     def jump(self):
-        self.player_sprite.change_y = PLAYER_JUMP_SPEED
+        if self.physics_engine.can_jump():
+            self.player_sprite.change_y = PLAYER_JUMP_SPEED
+            arcade.play_sound(self.jump_sound)
 
     def move_right(self):
         self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
