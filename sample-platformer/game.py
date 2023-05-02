@@ -42,6 +42,7 @@ class MyGame(arcade.Window):
 
         # Create a variable for the game camera
         self.camera = None
+        self.gui_camera = None
 
         # Separate variable that holds the player sprite
         self.player_sprite = None
@@ -52,6 +53,10 @@ class MyGame(arcade.Window):
         # Create sounds variables
         self.jump_sound = None
         self.collect_coins_sound = None
+
+        # Game score and attributes
+        self.score = 0
+        # self.lifes = 3
 
 
         arcade.set_background_color(arcade.color.LIGHT_SLATE_GRAY)
@@ -65,6 +70,7 @@ class MyGame(arcade.Window):
 
         # Intializes the camera
         self.camera = arcade.Camera(self.width, self.height)
+        self.gui_camera = arcade.Camera(self.width, self.height)
 
         # Creates Sprite Lists
         self.scene.add_sprite_list("Player")
@@ -153,6 +159,19 @@ class MyGame(arcade.Window):
         # Activates our Camera
         self.camera.use()
 
+        # Activates the GUI Camera
+        self.gui_camera.use()
+
+        # Draws our score on the screen, scrolling it with the viewport
+        score_text = f"Score: {self.score}"
+        arcade.draw_text(
+            score_text,
+            10, 
+            SCREEN_HEIGHT - 24,
+            arcade.color.WHITE,
+            18,
+        )
+
     def on_key_press(self, symbol, modifiers):
         """Called whenever a key is pressed
         Allows for basic movement with arrows (up (jump), down, left, right)
@@ -182,9 +201,6 @@ class MyGame(arcade.Window):
         # Move the player with the physics engine
         self.physics_engine.update()
 
-        # Repositions the camera according to player movement
-        self.center_camera_to_player()
-
         # Collect coins if player passes through it
         coins_hit_list = arcade.check_for_collision_with_list(
             self.player_sprite, 
@@ -194,10 +210,13 @@ class MyGame(arcade.Window):
         for coin in coins_hit_list:
             # Removes the coin
             coin.remove_from_sprite_lists()
+            # Updates the score
+            self.score += 1
             # Play a sound
             arcade.play_sound(self.collect_coins_sound)
 
-
+        # Repositions the camera according to player movement
+        self.center_camera_to_player()
 
     def center_camera_to_player(self):
         """Moves the camera so it can follow the player on screen"""
