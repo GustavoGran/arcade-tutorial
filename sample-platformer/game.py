@@ -3,6 +3,7 @@ Platformer Game
 """
 
 import arcade
+import logging
 
 # Constants
 DISPLAY_SIZE = arcade.get_display_size()
@@ -15,9 +16,11 @@ CHARACTER_SCALING = 0.5
 TILE_SCALING = 0.5
 
 # Movement speed of player, in pixels per frame
-PLAYER_MOVEMENT_SPEED = 5
+PLAYER_MOVEMENT_SPEED = 10
 GRAVITY = 1
 PLAYER_JUMP_SPEED = 20
+
+err_logger = logging.Logger("Error Logger")
 
 # Classes
 
@@ -116,27 +119,24 @@ class MyGame(arcade.Window):
         """Called whenever a key is pressed
         Allows for basic movement with arrows (up (jump), down, left, right)
         """
-        if symbol == arcade.key.UP:
-            self.player_sprite.change_y = PLAYER_JUMP_SPEED
-        elif symbol == arcade.key.DOWN:
-            self.player_sprite.change_y = -PLAYER_MOVEMENT_SPEED
-        elif symbol == arcade.key.RIGHT:
-            self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
-        elif symbol == arcade.key.LEFT:
-            self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
+        try: 
+            handler = self.get_key_press_handler(symbol)
+            handler()
+
+        except KeyError:
+            err_logger.warning(f"Unmapped key pressed:  {symbol}")
 
     def on_key_release(self, symbol, modifiers):
         """Called whenever a key is realeased
         Allows for basic movement with arrows (up, down, left, right)
         """
-        if symbol == arcade.key.UP:
-            self.player_sprite.change_y = 0
-        elif symbol == arcade.key.DOWN:
-            self.player_sprite.change_y = 0
-        elif symbol == arcade.key.RIGHT:
-            self.player_sprite.change_x = 0
-        elif symbol == arcade.key.LEFT:
-            self.player_sprite.change_x = 0
+        try: 
+            handler = self.get_key_release_handler(symbol)
+            handler()
+
+        except KeyError:
+            # err_logger.warning(f"Unmapped key pressed:  {symbol}")
+            pass
 
     def on_update(self, delta_time):
         """Updates movements and game logic"""
@@ -160,6 +160,39 @@ class MyGame(arcade.Window):
                      player_coord[1] - (self.camera.viewport_height / 2))
 
         self.camera.move_to(cam_coord, 1.0)
+
+    def get_key_press_handler(self, key):
+        """Provides handler functions for each key mapping configured"""
+        handler_dict = {
+            arcade.key.UP: self.jump,
+            arcade.key.RIGHT: self.move_right,
+            arcade.key.LEFT: self.move_left,
+        }
+        return handler_dict[key]
+
+    def get_key_release_handler(self, key):
+        """Provides handler functions for each key mapping configured"""
+        handler_dict = {
+            arcade.key.UP: self.stop_vertical_movement,
+            arcade.key.RIGHT: self.stop_horizontal_movement,
+            arcade.key.LEFT: self.stop_horizontal_movement,
+        }
+        return handler_dict[key]
+
+    def stop_vertical_movement(self):
+        self.player_sprite.change_y = 0
+
+    def stop_horizontal_movement(self):
+        self.player_sprite.change_x = 0
+
+    def jump(self):
+        self.player_sprite.change_y = PLAYER_JUMP_SPEED
+
+    def move_right(self):
+        self.player_sprite.change_x = PLAYER_MOVEMENT_SPEED
+    
+    def move_left(self):
+        self.player_sprite.change_x = -PLAYER_MOVEMENT_SPEED
 
 if __name__ == '__main__':
     window = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
