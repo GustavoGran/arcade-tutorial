@@ -58,90 +58,56 @@ class MyGame(arcade.Window):
         self.score = 0
         # self.lifes = 3
 
+        # Game TileMap Object
+        self.tile_map = None
+
 
         arcade.set_background_color(arcade.color.LIGHT_SLATE_GRAY)
 
     def setup(self):
         """Set up game here. Call this function to restart the game
         """
-        
-        # Intialize the scene
-        self.scene = arcade.Scene()
-
         # Intializes the camera
         self.camera = arcade.Camera(self.width, self.height)
         self.gui_camera = arcade.Camera(self.width, self.height)
 
-        # Creates Sprite Lists
-        self.scene.add_sprite_list("Player")
-        self.scene.add_sprite_list("Walls", use_spatial_hash=True)
-        self.scene.add_sprite_list("Coins", use_spatial_hash=True)
+        # Name of map file to load
+        map_name = ":resources:tiled_maps/map.json"
 
-        # Set up the player, specifically placing at these cordinates
-        player_img = ":resources:images/alien/alienBlue_walk1.png"
-        self.player_sprite = arcade.Sprite(player_img, CHARACTER_SCALING)
-        
-        # Defines where player is positioned at start
-        self.player_sprite.center_x = 64
-        self.player_sprite.center_y = 150
+        # Layer specific options are defined based on layer names in a dictionary
+        # Doing this will make the SpriteList for the platforms layers
+        # use spatial hashing for etection
+        layer_options = {
+            "Platforms": {
+                "use_spatial_hash": True,
+            },
+        }
 
+        # Read in the tiled_map
+        self.tile_map = arcade.load_tilemap(map_name, TILE_SCALING, layer_options)
+
+        # Initialize Scene with our TileMap, this will automatically add all layers
+        # from the map as SpriteLists in the scene in the proper order.
+        self.scene = arcade.Scene.from_tilemap(self.tile_map)
+
+        # Keep track of the score
+        self.score = 0
+
+        # Set up the player, specifically placing it at these coordinates
+        image_source = ":resources:images/animated_characters/female_adventurer/femaleAdventurer_idle.png"
+        self.player_sprite = arcade.Sprite(image_source, CHARACTER_SCALING)
+        self.player_sprite.center_x = 128
+        self.player_sprite.center_y = 128
         self.scene.add_sprite("Player", self.player_sprite)
 
-        # Create the ground
-        # places multiple sprites horizontally
-        wall_img = ":resources:/images/tiles/stone.png"
-        for x in range (0, SCREEN_WIDTH, 64):
-            wall = arcade.Sprite(wall_img, TILE_SCALING)
-            wall.center_x = x
-            wall.center_y = 32
-            self.scene.add_sprite("Walls", wall)
+        # --- Other stuff
+        # Set the background color
+        if self.tile_map.background_color:
+            arcade.set_background_color(self.tile_map.background_color)
 
-        # resources are 128x128 px images
-        # We want to place a coin each 3 blocks starting on 4th block 
-        # until the map ends
-        coin_start_coord = {
-            'x': int(128*TILE_SCALING*4),
-            'y': int(128*(TILE_SCALING + 1.5*COIN_SCALING))
-        }
-
-        coin_gen_step = int(128*COIN_SCALING*3)
-
-        coin_coord_lists =[[x, coin_start_coord['y']] 
-                            for x in range(coin_start_coord['x'],
-                                           SCREEN_WIDTH,
-                                           coin_gen_step)]
-        
-        # Add coins with the predefined coordinates
-        coin_img = ':resources:/images/items/coinGold.png'
-        for coord in coin_coord_lists:
-            coin = arcade.Sprite(coin_img, COIN_SCALING)
-            coin.position = coord
-            self.scene.add_sprite("Coins", coin)
-            
-        # Put some spikes on the ground
-        # Uses coordinate list to place sprites
-        spike_start_coord = {
-            "x": int(128 * TILE_SCALING*3),
-            "y": int(128 * TILE_SCALING * 1.5),
-        }
-
-        spike_gen_step = int(128*TILE_SCALING*5)
-        spikes_coords = [[x, spike_start_coord['y']] 
-                            for x in range(spike_start_coord['x'],
-                                           SCREEN_WIDTH,
-                                           spike_gen_step)]
-        # Add spikes to the ground
-        spike_img = ":resources:/images/tiles/spikes.png"
-        for coord in spikes_coords:
-            spikes = arcade.Sprite(spike_img, TILE_SCALING)
-            spikes.position = coord
-            self.scene.add_sprite("Walls", spikes)
-
-        # Creates physics engine to handle player movement and gravity
+        # Create the physiscs engine
         self.physics_engine = arcade.PhysicsEnginePlatformer(
-            player_sprite= self.player_sprite,
-            gravity_constant= GRAVITY,
-            walls=self.scene.get_sprite_list("Walls"),
+            self.player_sprite, gravity_constant=GRAVITY, walls=self.scene["Platforms"],
         )
 
         # Load sounds
