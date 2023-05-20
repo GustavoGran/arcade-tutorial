@@ -4,6 +4,7 @@ Platformer Game
 
 import arcade
 import logging
+import os
 # from random import randint
 
 # Constants
@@ -26,6 +27,10 @@ PLAYER_JUMP_SPEED = 20
 SPRITE_PIXEL_SIZE = 128
 GRID_PIXEL_SIZE = SPRITE_PIXEL_SIZE * TILE_SCALING
 
+# Level boundaries
+START_LEVEL = 1
+END_LEVEL = 3
+
 # Player starting position
 PLAYER_START_X = 64
 PLAYER_START_Y = 225
@@ -33,11 +38,12 @@ PLAYER_START_Y = 225
 # Layer Names from our TileMap
 LAYER_NAME_PLATFORMS = "Platforms"
 LAYER_NAME_COINS = "Coins"
+LAYER_NAME_FLAGS = "Flags"
 LAYER_NAME_FOREGROUND = "Foreground"
 LAYER_NAME_BACKGROUND = "Background"
 LAYER_NAME_DONT_TOUCH = "Don't Touch"
-
-err_logger = logging.Logger("Error Logger")
+LAYER_NAME_LADDERS = "Ladders"
+LAYER_NAME_MOVING_PLATFORMS = "Moving Platforms"
 
 # Classes
 
@@ -51,6 +57,18 @@ class MyGame(arcade.Window):
         # Calls parent class and setup the window
         super().__init__(height, width, title, 
                          resizable=False, center_window=True)
+
+        # Configures path
+        self.src_path = f"{os.getcwd()}/sample-platformer"
+
+        # Configures logger
+        
+        logging.basicConfig(
+            filename=f"{self.src_path}/logs/warning.log",
+            filemode='a',
+            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+            datefmt='%H:%M:%S',
+            level=logging.WARNING)
 
         # Create a variable for the game scene
         self.scene = None
@@ -69,23 +87,27 @@ class MyGame(arcade.Window):
         self.end_of_map = 0
 
         # Level
-        self.level = 1
+        self.level = START_LEVEL
+
 
         # Create sounds variables
         # Load sounds
         self.jump_sound = arcade.load_sound(":resources:/sounds/jump1.wav")
         self.collect_coins_sound = arcade.load_sound(":resources:/sounds/coin1.wav")
+        self.collect_flag_sound = arcade.load_sound(":resources:sounds/fall1.wav") 
         self.game_over = arcade.load_sound(":resources:sounds/gameover1.wav") 
 
         # Game score and attributes
         self.score = 0
+
+        # Flags score
+        self.flag_score = 0
         
         # Do we need to reset the score?
         self.reset_score = True
 
         # Game TileMap Object
         self.tile_map = None
-
 
         arcade.set_background_color(arcade.color.LIGHT_SLATE_GRAY)
 
@@ -96,8 +118,11 @@ class MyGame(arcade.Window):
         self.camera = arcade.Camera(self.width, self.height)
         self.gui_camera = arcade.Camera(self.width, self.height)
 
+        if self.level == END_LEVEL+1:
+            exit()
+
         # Name of map file to load
-        map_name = f":resources:tiled_maps/map2_level_{self.level}.json"
+        map_name = str(f"{self.src_path}/resources/tiled_maps/map2_level_{self.level}.json")
 
         # Layer specific options are defined based on layer names in a dictionary
         # Doing this will make the SpriteList for the platforms layers
@@ -109,7 +134,16 @@ class MyGame(arcade.Window):
             LAYER_NAME_COINS: {
                 "use_spatial_hash": True,
             },
+            LAYER_NAME_FLAGS: {
+                "use_spatial_hash": True,
+            },
             LAYER_NAME_DONT_TOUCH: {
+                "use_spatial_hash": True,
+            },
+            LAYER_NAME_MOVING_PLATFORMS: {
+                "use_spatial_hash": False,
+            },
+            LAYER_NAME_LADDERS: {
                 "use_spatial_hash": True,
             },
         }
@@ -145,9 +179,18 @@ class MyGame(arcade.Window):
         if self.tile_map.background_color:
             arcade.set_background_color(self.tile_map.background_color)
 
+        
+        try:
+            moving_platform = self.scene[LAYER_NAME_MOVING_PLATFORMS]
+        except KeyError:
+            moving_platform = None
+
         # Create the physiscs engine
         self.physics_engine = arcade.PhysicsEnginePlatformer(
-            self.player_sprite, gravity_constant=GRAVITY, walls=self.scene[LAYER_NAME_PLATFORMS],
+            player_sprite=self.player_sprite, 
+            gravity_constant=GRAVITY, 
+            walls=self.scene[LAYER_NAME_PLATFORMS],
+            platforms=moving_platform
         )
 
         # Calculate the right edge of the my_map in pixels
@@ -159,11 +202,11 @@ class MyGame(arcade.Window):
         # Removes old renders
         self.clear()
 
-        # Draw our scene
-        self.scene.draw()
-
         # Activates our Camera
         self.camera.use()
+
+        # Draw our scene
+        self.scene.draw()
 
         # Activates the GUI Camera
         self.gui_camera.use()
@@ -175,7 +218,17 @@ class MyGame(arcade.Window):
             10, 
             SCREEN_HEIGHT - 24,
             arcade.csscolor.BLACK,
-            18,
+            16,
+        )
+
+        # Draws our flag score on the screen
+        flag_score_text = f"Flags: {self.flag_score}"
+        arcade.draw_text(
+            flag_score_text,
+            150,
+            SCREEN_HEIGHT - 24,
+            arcade.csscolor.BLACK,
+            16
         )
 
     def on_key_press(self, symbol, modifiers):
@@ -187,7 +240,7 @@ class MyGame(arcade.Window):
             handler()
 
         except KeyError:
-            err_logger.warning(f"Unmapped key pressed:  {symbol}")
+            logging.warning(f"Unmapped key pressed:  {symbol}")
 
     def on_key_release(self, symbol, modifiers):
         """Called whenever a key is realeased
@@ -198,7 +251,7 @@ class MyGame(arcade.Window):
             handler()
 
         except KeyError:
-            # err_logger.warning(f"Unmapped key pressed:  {symbol}")
+            # logging.warning(f"Unmapped key pressed:  {symbol}")
             pass
 
     def on_update(self, delta_time):
@@ -206,6 +259,9 @@ class MyGame(arcade.Window):
 
         # Move the player with the physics engine
         self.physics_engine.update()
+
+        # Update animations
+        self.scene.update_animation(delta_time, [LAYER_NAME_COINS, LAYER_NAME_BACKGROUND])
 
         # Collect coins if player passes through it
         coins_hit_list = arcade.check_for_collision_with_list(
@@ -220,6 +276,21 @@ class MyGame(arcade.Window):
             # Play a sound
             arcade.play_sound(self.collect_coins_sound)
 
+        # Collect flags if player passes through it
+        flags_hit_list = arcade.check_for_collision_with_list(
+            self.player_sprite, self.scene[LAYER_NAME_FLAGS]
+        )
+
+        for flag in flags_hit_list:
+            # Removes the flag
+            flag.remove_from_sprite_lists()
+            
+            # Updates the flag score
+            self.flag_score += 1
+            
+            #Play a sound
+            arcade.play_sound(self.collect_flag_sound)
+        
         # Repositions the camera according to player movement
         self.center_camera_to_player()
 
@@ -275,6 +346,9 @@ class MyGame(arcade.Window):
         player_centered = cam_coord[0], cam_coord[1]
 
         self.camera.move_to(player_centered)
+        logging.warning(f"player_coord:{player_coord}")
+        logging.warning(f"cam_coord:{cam_coord}")
+        logging.warning(f"player_centered: {player_centered}")
 
     def get_key_press_handler(self, key):
         """Provides handler functions for each key mapping configured"""
