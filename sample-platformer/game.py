@@ -28,8 +28,8 @@ SPRITE_PIXEL_SIZE = 128
 GRID_PIXEL_SIZE = SPRITE_PIXEL_SIZE * TILE_SCALING
 
 # Level boundaries
-START_LEVEL = 1
-END_LEVEL = 3
+START_LEVEL = 4
+END_LEVEL = 4
 
 # Player starting position
 PLAYER_START_X = 64
@@ -41,7 +41,7 @@ LAYER_NAME_COINS = "Coins"
 LAYER_NAME_FLAGS = "Flags"
 LAYER_NAME_FOREGROUND = "Foreground"
 LAYER_NAME_BACKGROUND = "Background"
-LAYER_NAME_DONT_TOUCH = "Don't Touch"
+LAYER_NAME_PLAYER_DEATH_ZONE = "Don't Touch"
 LAYER_NAME_LADDERS = "Ladders"
 LAYER_NAME_MOVING_PLATFORMS = "Moving Platforms"
 
@@ -137,7 +137,7 @@ class MyGame(arcade.Window):
             LAYER_NAME_FLAGS: {
                 "use_spatial_hash": True,
             },
-            LAYER_NAME_DONT_TOUCH: {
+            LAYER_NAME_PLAYER_DEATH_ZONE: {
                 "use_spatial_hash": True,
             },
             LAYER_NAME_MOVING_PLATFORMS: {
@@ -185,12 +185,18 @@ class MyGame(arcade.Window):
         except KeyError:
             moving_platform = None
 
+        try:
+            ladders = self.scene[LAYER_NAME_LADDERS]
+        except KeyError:
+            ladders = None
+
         # Create the physiscs engine
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             player_sprite=self.player_sprite, 
             gravity_constant=GRAVITY, 
             walls=self.scene[LAYER_NAME_PLATFORMS],
-            platforms=moving_platform
+            platforms=moving_platform, 
+            ladders= ladders
         )
 
         # Calculate the right edge of the my_map in pixels
@@ -301,9 +307,14 @@ class MyGame(arcade.Window):
             arcade.play_sound(self.game_over)
 
         # Did the player touch something they should not?
-        if arcade.check_for_collision_with_list(
+        try:
+            death_zone_list = self.scene[LAYER_NAME_PLAYER_DEATH_ZONE]
+        except KeyError:
+            death_zone_list = None
+
+        if death_zone_list and arcade.check_for_collision_with_list(
             self.player_sprite, 
-            self.scene[LAYER_NAME_DONT_TOUCH]
+            self.scene[LAYER_NAME_PLAYER_DEATH_ZONE]
         ):
             self.player_sprite.change_x = 0
             self.player_sprite.change_y = 0

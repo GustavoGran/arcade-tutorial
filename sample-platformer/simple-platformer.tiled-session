@@ -134,8 +134,8 @@
             "scale": 0.33,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3721.212121212121,
-                "y": 1175.7575757575758
+                "x": 2559.090909090909,
+                "y": 1086.3636363636365
             }
         },
         "resources/tiled_maps/map2_level_1.json#tileset": {
@@ -145,8 +145,8 @@
             "scale": 0.19408203124999998,
             "selectedLayer": 5,
             "viewCenter": {
-                "x": 2627.7548555902185,
-                "y": 948.0527322129415
+                "x": 2622.6023950890612,
+                "y": 942.9002717117842
             }
         },
         "resources/tiled_maps/map2_level_2.json#tiles": {
@@ -160,8 +160,8 @@
             "scale": 0.125,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3496,
-                "y": 1648
+                "x": 3480,
+                "y": 1632
             }
         },
         "resources/tiled_maps/map2_level_3.json#items": {
@@ -173,6 +173,14 @@
             "dynamicWrapping": true,
             "scaleInDock": 1,
             "scaleInEditor": 1
+        },
+        "resources/tiled_maps/map2_level_4.json": {
+            "scale": 0.38681066176470585,
+            "selectedLayer": 5,
+            "viewCenter": {
+                "x": 1282.281097778306,
+                "y": 1127.1664488535112
+            }
         },
         "resources/tiled_maps/map_with_ladders.json": {
             "scale": 0.38681066176470585,
@@ -242,9 +250,9 @@
     "project": "simple-platformer.tiled-project",
     "property.type": "float",
     "recentFiles": [
+        "resources/tiled_maps/map_with_ladders.json",
         "resources/tiled_maps/map2_level_1.json",
         "resources/tiled_maps/map2_level_2.json",
-        "resources/tiled_maps/map_with_ladders.json",
         "resources/tiled_maps/map2_level_3.json",
         "tiled_maps/map2_level_2.json",
         "map/map_03.json",
